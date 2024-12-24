@@ -1,52 +1,56 @@
 import logging
-
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, redirect
+import hashlib
+import hmac
+import time
+import json
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.shortcuts import render
 from django.contrib.auth import login
 from django.contrib.auth.models import User
 from . models import TelegramProfile
-import secrets
+from django.contrib.auth.decorators import login_required
 
 
-logger = logging.getLogger(__name__)
+BOT_TOKEN = '7982653482:AAEtitxQYmgSn6dNLvQGLpMdAst-80cK5z4'
+
+
 def login_via_telegram(request):
-    token = secrets.token_urlsafe(16)
-    # Сформировать URL для Telegram-бота
-    bot_username = 'myloginetbot'
-    telegram_link = f"https://t.me/{bot_username}?start={token}"
-
-    # Сохранить токен
-    request.session['auth_token'] = token
-
-    return render(request, 'login.html', {'telegram_link': telegram_link})
+    """
+    Отображает страницу с Telegram Login Widget.
+    """
+    return render(request, 'login.html')
 
 
-def telegram_callback(request):
-    telegram_id = request.GET.get('telegram_id')
-    telegram_username = request.GET.get('username')
-    token = request.GET.get('token')
+@csrf_exempt
+def telegram_auth(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        auth_date = int(data['auth_date'])
+        hash_value = data['hash']
+        check_string = "\n".join([f"{k}={v}" for k, v in sorted(data.items()) if k != 'hash'])
+        secret_key = hashlib.sha256(BOT_TOKEN.encode()).digest()
+        calculated_hash = hmac.new(secret_key, check_string.encode(), hashlib.sha256).hexdigest()
 
-    try:
-        user = User.objects.get(username=telegram_username)
-        # Обновляем профиль
-        profile = user.telegramprofile
-        profile.telegram_id = telegram_id
-        profile.telegram_username = telegram_username
-        profile.save()
-    except User.DoesNotExist:
-        user = User.objects.create(username=telegram_username)
-        profile = TelegramProfile.objects.create(
-            user=user,
-            telegram_id=telegram_id,
-            telegram_username=telegram_username,
-            auth_token=token
-        )
+        if calculated_hash != hash_value:
+            return JsonResponse({'error': 'Invalid hash'}, status=403)
+        if time.time() - auth_date > 86400:
+            return JsonResponse({'error': 'Auth date expired'}, status=403)
 
-    login(request, user)
-    return redirect('welcome')
+        telegram_id = data['id']
+        username = data.get('username', f'user_{telegram_id}')
+
+        user, created = User.objects.get_or_create(username=username)
+        TelegramProfile.objects.get_or_create(user=user, telegram_id=telegram_id, telegram_username=username)
+
+        login(request, user)
+        return JsonResponse({'status': 'success'})
 
 
+@login_required
 def welcome_view(request):
-    username = request.user.username
-    return render(request, 'welcome.html', {'username': username})
+    """
+    Отображает страницу приветствия после успешной авторизации.
+    """
+    return render(request, 'welcome.html', {'username': request.user.username})
 
