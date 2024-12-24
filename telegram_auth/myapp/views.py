@@ -8,7 +8,6 @@ from . models import TelegramProfile
 import secrets
 
 
-logger = logging.getLogger(__name__)
 def login_via_telegram(request):
     token = secrets.token_urlsafe(16)
     # Сформировать URL для Telegram-бота
@@ -22,18 +21,17 @@ def login_via_telegram(request):
 
 
 def telegram_callback(request):
+    token = request.GET.get('token')
     telegram_id = request.GET.get('telegram_id')
     telegram_username = request.GET.get('username')
-    token = request.GET.get('token')
 
     try:
-        user = User.objects.get(username=telegram_username)
-        # Обновляем профиль
-        profile = user.telegramprofile
+        profile = TelegramProfile.objects.get(auth_token=token)
+        user = profile.user
         profile.telegram_id = telegram_id
         profile.telegram_username = telegram_username
         profile.save()
-    except User.DoesNotExist:
+    except TelegramProfile.DoesNotExist:
         user = User.objects.create(username=telegram_username)
         profile = TelegramProfile.objects.create(
             user=user,
@@ -46,6 +44,7 @@ def telegram_callback(request):
     return redirect('welcome')
 
 
+@login_required
 def welcome_view(request):
     username = request.user.username
     return render(request, 'welcome.html', {'username': username})
