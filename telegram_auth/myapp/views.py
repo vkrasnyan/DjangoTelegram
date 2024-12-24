@@ -22,17 +22,18 @@ def login_via_telegram(request):
 
 
 def telegram_callback(request):
-    token = request.GET.get('token')
     telegram_id = request.GET.get('telegram_id')
     telegram_username = request.GET.get('username')
+    token = request.GET.get('token')
 
     try:
-        profile = TelegramProfile.objects.get(auth_token=token)
-        user = profile.user
+        user = User.objects.get(username=telegram_username)
+        # Обновляем профиль
+        profile = user.telegramprofile
         profile.telegram_id = telegram_id
         profile.telegram_username = telegram_username
         profile.save()
-    except TelegramProfile.DoesNotExist:
+    except User.DoesNotExist:
         user = User.objects.create(username=telegram_username)
         profile = TelegramProfile.objects.create(
             user=user,
