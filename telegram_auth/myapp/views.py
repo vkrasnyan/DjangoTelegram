@@ -12,7 +12,7 @@ from . models import TelegramProfile
 from django.contrib.auth.decorators import login_required
 
 
-BOT_TOKEN = '7982653482:AAEtitxQYmgSn6dNLvQGLpMdAst-80cK5z4'
+BOT_TOKEN = 'YourBotToken'
 
 
 def login_via_telegram(request):
