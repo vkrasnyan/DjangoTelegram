@@ -4,7 +4,7 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
 
-TOKEN = '7982653482:AAEtitxQYmgSn6dNLvQGLpMdAst-80cK5z4'
+TOKEN = 'YourBotToken'
 DJANGO_SERVER_URL = 'http://127.0.0.1:8000/telegram_callback'
 
 logging.basicConfig(level=logging.INFO)
