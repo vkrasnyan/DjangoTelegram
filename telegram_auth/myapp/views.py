@@ -11,7 +11,7 @@ from django.contrib.auth.models import User
 from .models import TelegramProfile
 
 
-BOT_TOKEN = '7982653482:AAEtitxQYmgSn6dNLvQGLpMdAst-80cK5z4'
+BOT_TOKEN = 'YourBotToken'
 
 
 def login_via_telegram(request):
